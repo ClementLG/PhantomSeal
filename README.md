@@ -102,7 +102,7 @@ The main application settings can be adjusted in the `config.py` file:
 
 * Config UI
 
-    ![File Management](illustrations/config_visiblewatermak_ui.png) 
+    ![File Management](illustrations/visiblewatermak_ui.png) 
 
 
 * Example 1: Simple watermark in the bottom right corner.
