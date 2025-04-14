@@ -6,9 +6,6 @@
 > A software tool designed to embed robust, pixel-level digital watermarks into images. It protects visual creations by incorporating identifiable data resistant to common manipulations like resizing and compression, all while preserving maximum image quality. The software provides functions for both adding and reading these watermarks, offering an essential solution for creators and professionals needing to secure and track their visual assets.
 
 ---
-
-![Placeholder - PhantomSeal Interface](placeholder.png)
-
 ## Key Features ✨
 
 * **Intuitive Web Interface:** Upload images via drag-and-drop or file selection.
@@ -104,18 +101,18 @@ The main application settings can be adjusted in the `config.py` file:
 ## Examples <caption>
 
 * Config UI
-    ```
+
     ![File Management](illustrations/config_visiblewatermak_ui.png) 
-    ```
+
 
 * Example 1: Simple watermark in the bottom right corner.
-    ```
+
     ![File Management](illustrations/watermark_rightcorner.png) 
-    ```
+
 * Example 2: Tiled watermark with rotation.
-    ```
+
     ![File Management](illustrations/watermark_repetition.png) 
-    ```
+
 
 ## Contributing 🤝
 
