@@ -1,0 +1,102 @@
+/* static/css/style.css */
+
+/* Style for the dashed border on the drop zone */
+.border-dashed {
+    border-style: dashed !important; /* Use !important cautiously */
+    border-width: 2px !important;
+}
+
+/* Visual feedback when dragging files over the drop zone */
+#drop-zone.dragover {
+    background-color: #e9ecef; /* Bootstrap's light gray */
+    border-color: #adb5bd; /* Bootstrap's gray */
+}
+
+/* Container for each preview item (image + delete button) */
+.preview-item {
+    position: relative; /* Needed for absolute positioning of the button */
+    display: inline-block; /* Arrange items side-by-side */
+    margin: 5px; /* Add some space around each item */
+}
+
+/* Style for the preview image elements themselves */
+.preview-image {
+    max-width: 100px;
+    height: 100px;
+    object-fit: cover;
+    /* img-thumbnail class from Bootstrap added in JS */
+    display: block; /* Prevent extra space below inline images */
+}
+
+/* Style for the container holding all the previews */
+.preview-container {
+    min-height: 150px;
+    max-height: 300px;
+    overflow-y: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0px; /* Let the margin on preview-item handle spacing */
+    align-content: flex-start;
+    /* background, border, padding are handled by Bootstrap classes in HTML */
+}
+
+/* Style for the placeholder text inside the preview container */
+#preview-placeholder {
+    width: 100%;
+    text-align: center;
+    align-self: center;
+    display: block;
+}
+
+/* Style for the delete button on previews */
+.preview-delete-btn {
+    position: absolute; /* Position relative to .preview-item */
+    top: -5px;          /* Adjust position slightly above the top edge */
+    right: -5px;         /* Adjust position slightly past the right edge */
+    background-color: rgba(255, 255, 255, 0.7); /* Semi-transparent white background */
+    border-radius: 50%; /* Make it circular */
+    padding: 0.15rem;   /* Adjust padding for size */
+    line-height: 1;     /* Ensure icon is centered */
+    z-index: 10;        /* Make sure it's above the image */
+    /* Bootstrap's btn-close provides the 'X' icon */
+    /* Adjust size using btn-sm or custom width/height if needed */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* Optional subtle shadow */
+}
+
+/* Optional: Darker background on hover for better visibility */
+.preview-delete-btn:hover {
+     background-color: rgba(220, 220, 220, 0.9);
+}
+
+
+/* Style for the preview image elements themselves */
+.preview-image {
+    max-width: 100px;
+    height: 100px;
+    object-fit: cover; /* Crop image to fit container without distortion */
+     /* Bootstrap 'img-thumbnail' class added in JS for border */
+}
+
+/* Style for the container holding the previews */
+.preview-container {
+    min-height: 150px; /* Ensure it has some height even when empty */
+    max-height: 300px; /* Limit the maximum height */
+    overflow-y: auto;  /* Add vertical scrollbar if content exceeds max-height */
+    display: flex;     /* Use flexbox for layout */
+    flex-wrap: wrap;   /* Allow items to wrap to the next line */
+    gap: 10px;         /* Space between preview items */
+    align-content: flex-start; /* Align wrapped lines to the top */
+}
+
+/* Style for the placeholder text inside the preview container */
+#preview-placeholder {
+    width: 100%; /* Take full width */
+    text-align: center; /* Center the text */
+    align-self: center; /* Center vertically within flex container */
+    display: block; /* Ensure it's treated as a block element */
+}
+
+/* Ensure Bootstrap validation message shows */
+.form-control.is-invalid ~ .invalid-feedback {
+  display: block;
+}
