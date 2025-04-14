@@ -20,7 +20,7 @@
         {# --- Section 1: Upload --- #}
         <section class="upload-section mb-4">
             <h2>1. Upload Your Photos</h2>
-            <div id="upload-errors" class="alert d-none" role="alert"></div> {# Danger/Success class added by JS #}
+            <div id="upload-errors" class="alert alert-danger d-none mt-2" role="alert"></div> {# Messages liés à l'upload ici #}
 
             {# Drop zone area #}
             <div id="drop-zone" class="border border-dashed p-4 text-center bg-light mb-3" style="cursor: pointer;">
@@ -128,7 +128,7 @@
             </form> {# End #watermark-form #}
         </section>
 
-        {# --- Section 3: Result Preview --- #}
+        {# --- Section 3: Estimated Impact --- #}
         <section class="result-section mb-4">
             <h2>Estimated Impact</h2>
             <div id="degradation-display" class="alert alert-info text-center py-2"> {# Slightly less padding #}
@@ -145,13 +145,18 @@
             </div>
         </section>
 
+        {# --- Section 5: Result Messages (Processing results/errors) --- #}
+        <section class="result-message-section">
+             <div id="result-messages" class="alert d-none mt-4" role="alert"></div> {# Messages liés au traitement ici #}
+        </section>
+
     </div> {# End .col #}
 </div> {# End .row #}
 {% endblock %}
 
 {# --- Page Specific Scripts --- #}
 {% block scripts %}
-{# This script runs after the main script.js #}
+{# This script runs after the main script.js to handle UI interactions specific to this page #}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // Get references to the elements controlling tiling options
