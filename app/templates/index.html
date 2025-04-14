@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Home - PhantomSeal{% endblock %}
+{% block title %}Apply Watermark - PhantomSeal{% endblock %} {# More specific title #}
 
 {% block content %}
 {# This div holds configuration passed from Flask, read by JavaScript #}
@@ -10,6 +10,7 @@
     data-allowed-extensions="{{ allowed_extensions|tojson|safe }}" {# Use safe filter after tojson #}
     data-max-visible-text="{{ max_visible_text }}"
     data-max-invisible-text="{{ max_invisible_text }}"
+    data-max-file-size-bytes="{{ max_file_size_bytes }}" {# Pass size limit in bytes #}
     style="display: none;"> {# Hide this div #}
 </div>
 
@@ -19,14 +20,14 @@
 
         {# --- Section 1: Upload --- #}
         <section class="upload-section mb-4">
-            <h2>1. Upload Your Photos</h2>
+            <h2 class="h4">1. Upload Your Photos</h2> {# Slightly smaller heading #}
             <div id="upload-errors" class="alert alert-danger d-none mt-2" role="alert"></div> {# Messages liés à l'upload ici #}
 
             {# Drop zone area #}
             <div id="drop-zone" class="border border-dashed p-4 text-center bg-light mb-3" style="cursor: pointer;">
-                <p class="mb-2 text-muted">Drag & drop images here or click to select (Max: {{ max_files }} files, Allowed: {{ allowed_extensions|join(', ') }})</p>
+                <p class="mb-2 text-muted">Drag & drop images here or click to select (Max: {{ max_files }} files, Max Size: {{ (max_file_size_bytes / (1024*1024))|round }} MB/file, Allowed: {{ allowed_extensions|join(', ') }})</p> {# Display limits #}
                 <input type="file" id="file-input" multiple accept="image/*" class="d-none"> {# Hidden file input #}
-                <button type="button" id="browse-btn" class="btn btn-secondary">Browse Files</button>
+                <button type="button" id="browse-btn" class="btn btn-secondary btn-sm">Browse Files</button> {# Smaller button #}
             </div>
 
             {# Preview area for uploaded images #}
@@ -38,37 +39,35 @@
 
         {# --- Section 2: Options --- #}
         <section class="options-section mb-4">
-            <h2>2. Choose Watermark Options</h2>
+             <h2 class="h4">2. Choose Watermark Options</h2> {# Slightly smaller heading #}
             {# Main form - novalidate relies on JS validation #}
             <form id="watermark-form" novalidate>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Watermark Type:</label>
-                    <div class="form-check">
+                    <div class="form-check form-check-inline"> {# Inline checks #}
                         <input class="form-check-input" type="radio" name="watermark_type" id="type_visible" value="visible" checked>
                         <label class="form-check-label" for="type_visible">Visible Text</label>
                     </div>
-                    <div class="form-check">
-                        {# Invisible option - currently disabled as not implemented #}
+                    <div class="form-check form-check-inline">
                         <input class="form-check-input" type="radio" name="watermark_type" id="type_invisible" value="invisible" disabled>
-                        <label class="form-check-label text-muted" for="type_invisible">Invisible (Not Implemented)</label>
+                        <label class="form-check-label text-muted" for="type_invisible">Invisible (N/A)</label>
                     </div>
                 </div>
 
                 <div id="visible-options">
                     <div class="mb-3">
                         <label for="watermark-text" class="form-label fw-bold">Watermark Text:</label>
-                        <div class="input-group has-validation"> {# Use has-validation for Bootstrap styles #}
+                        <div class="input-group input-group-sm has-validation"> {# Smaller group #}
                              <input type="text" class="form-control" id="watermark-text" name="watermark_text" placeholder="E.g., © PhantomSeal {{ current_year }}" aria-describedby="text-char-count text-errors">
-                             <span class="input-group-text" id="text-char-count">0 / {{ max_visible_text }}</span> {# Character counter #}
-                             {# Area for Bootstrap validation feedback, content set by JS #}
-                             <div id="text-errors" class="invalid-feedback"></div>
+                             <span class="input-group-text" id="text-char-count">0 / {{ max_visible_text }}</span>
+                             <div id="text-errors" class="invalid-feedback"></div> {# For JS text validation errors #}
                         </div>
                     </div>
 
-                    <div class="row g-3 mb-3"> {# Use Bootstrap grid for layout #}
+                    <div class="row g-2 mb-3 align-items-end"> {# Smaller gutters, align items #}
                         <div class="col-md-6">
                             <label for="position" class="form-label">Position:</label>
-                            <select class="form-select form-select-sm" id="position" name="position"> {# Smaller select #}
+                            <select class="form-select form-select-sm" id="position" name="position">
                                 <option value="bottom-right" selected>Bottom Right</option>
                                 <option value="bottom-left">Bottom Left</option>
                                 <option value="bottom-center">Bottom Center</option>
@@ -76,29 +75,28 @@
                                 <option value="top-left">Top Left</option>
                                 <option value="top-center">Top Center</option>
                                 <option value="center">Center</option>
-                                </select>
+                            </select>
                         </div>
                         <div class="col-md-6">
-                             <label for="font_size_ratio" class="form-label">Size (% of image height):</label>
-                             <div class="input-group input-group-sm"> {# Smaller input group #}
+                             <label for="font_size_ratio" class="form-label">Size (% Image Height):</label> {# Clarified relative dimension #}
+                             <div class="input-group input-group-sm">
                                 <input type="number" class="form-control" id="font_size_ratio" name="font_size_ratio" value="5" min="1" max="50" step="1">
                                 <span class="input-group-text">%</span>
                              </div>
                         </div>
                     </div>
 
-                    <div class="row g-3 mb-3">
+                    <div class="row g-2 mb-3 align-items-center"> {# Smaller gutters #}
                         <div class="col-md-6">
-                            <label for="color" class="form-label">Color:</label>
-                            {# Standard HTML color picker #}
-                            <input type="color" class="form-control form-control-color form-control-sm" id="color" name="color" value="#FFFFFF" title="Choose text color">
+                            <label for="color" class="form-label mb-0 me-2">Color:</label> {# Less margin #}
+                            <input type="color" class="form-control form-control-color form-control-sm d-inline-block w-auto" id="color" name="color" value="#FFFFFF" title="Choose text color">
                         </div>
                          <div class="col-md-6">
                              <label for="opacity" class="form-label">Opacity (0-255):</label>
-                             {# Range slider for opacity #}
-                             <input type="range" class="form-range" id="opacity" name="opacity" min="0" max="255" value="128" step="1">
-                             {# Span to display the current numerical value of the slider #}
-                             <span id="opacity-value" class="text-muted small">(128)</span>
+                             <div class="d-flex align-items-center">
+                                 <input type="range" class="form-range me-2" id="opacity" name="opacity" min="0" max="255" value="128" step="1">
+                                 <span id="opacity-value" class="badge bg-secondary">128</span> {# Use badge for value #}
+                             </div>
                          </div>
                     </div>
 
@@ -107,15 +105,15 @@
                         <label class="form-check-label" for="repeat">Repeat Watermark (Tiling)</label>
                     </div>
 
-                    <div id="tiling-options" class="ms-4 border-start ps-3 pt-2 d-none"> {# Indented and hidden initially #}
+                    <div id="tiling-options" class="ms-4 border-start ps-3 pt-2 d-none">
                          <p class="text-muted small mb-2">Tiling Options:</p>
-                         <div class="row g-3 mb-3">
+                         <div class="row g-2 mb-3"> {# Smaller gutters #}
                             <div class="col-md-6">
                                 <label for="angle" class="form-label">Angle (degrees):</label>
                                 <input type="number" class="form-control form-control-sm" id="angle" name="angle" value="0" min="-90" max="90" step="5">
                             </div>
                             <div class="col-md-6">
-                                 <label for="spacing_ratio" class="form-label">Spacing (% of text size):</label>
+                                 <label for="spacing_ratio" class="form-label">Spacing (% Text Size):</label> {# Clarified relative dimension #}
                                  <div class="input-group input-group-sm">
                                     <input type="number" class="form-control" id="spacing_ratio" name="spacing_ratio" value="50" min="0" max="500" step="10">
                                      <span class="input-group-text">%</span>
@@ -130,18 +128,20 @@
 
         {# --- Section 3: Estimated Impact --- #}
         <section class="result-section mb-4">
-            <h2>Estimated Impact</h2>
-            <div id="degradation-display" class="alert alert-info text-center py-2"> {# Slightly less padding #}
-                <p class="mb-0 fs-5"> {# Slightly smaller font #}
-                    Estimated Impact: <strong id="degradation-percent" class="text-dark">0%</strong>
+             <h2 class="h4">3. Estimated Impact</h2> {# Numbered heading #}
+            <div id="degradation-display" class="alert alert-light text-center py-2 border"> {# Lighter alert #}
+                <p class="mb-0 fs-5">
+                    Impact: <strong id="degradation-percent" class="text-dark">0%</strong>
                 </p>
             </div>
         </section>
 
         {# --- Section 4: Action Button --- #}
         <section class="action-section mb-3">
-             <div class="d-grid"> {# Makes button full width #}
-                <button type="submit" form="watermark-form" class="btn btn-primary btn-lg" id="process-btn" disabled>Apply Watermark</button>
+             <div class="d-grid">
+                <button type="submit" form="watermark-form" class="btn btn-primary btn-lg" id="process-btn" disabled>
+                    <i class="bi bi-pencil-square me-2"></i>Apply Watermark
+                </button>
             </div>
         </section>
 
@@ -156,42 +156,33 @@
 
 {# --- Page Specific Scripts --- #}
 {% block scripts %}
-{# This script runs after the main script.js to handle UI interactions specific to this page #}
+{# Script to handle UI interactions specific to this page #}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Get references to the elements controlling tiling options
     const repeatCheckbox = document.getElementById('repeat');
     const tilingOptionsDiv = document.getElementById('tiling-options');
-    // Get references for the opacity slider display
     const opacitySlider = document.getElementById('opacity');
-    const opacityValueSpan = document.getElementById('opacity-value');
+    const opacityValueSpan = document.getElementById('opacity-value'); // Now a badge
 
-    // Function to toggle visibility of tiling options based on checkbox state
     function toggleTilingOptions() {
         if (repeatCheckbox && tilingOptionsDiv) {
-            // Use Bootstrap's 'd-none' class to hide/show
             tilingOptionsDiv.classList.toggle('d-none', !repeatCheckbox.checked);
         }
     }
 
-    // Function to update the displayed numerical value of the opacity slider
     function updateOpacityValue() {
          if(opacitySlider && opacityValueSpan) {
-             opacityValueSpan.textContent = `(${opacitySlider.value})`; // Display value in parenthesis
+             opacityValueSpan.textContent = opacitySlider.value; // Update badge text
          }
     }
 
-    // Add event listener for the repeat checkbox
     if (repeatCheckbox) {
         repeatCheckbox.addEventListener('change', toggleTilingOptions);
-        toggleTilingOptions(); // Call once on load to set initial state
+        toggleTilingOptions(); // Initial state
     }
-
-    // Add event listener for the opacity slider
      if (opacitySlider) {
-        // Use 'input' event to update continuously as slider moves
         opacitySlider.addEventListener('input', updateOpacityValue);
-        updateOpacityValue(); // Call once on load to set initial display
+        updateOpacityValue(); // Initial state
      }
 });
 </script>

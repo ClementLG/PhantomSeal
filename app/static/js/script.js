@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif']; // Basic default
     let MAX_VISIBLE_TEXT = 50;
     let MAX_INVISIBLE_TEXT = 50;
+    let MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // Default 20MB
+    let MAX_FILE_SIZE_MB = 20; // Default for messages
 
     console.log("DEBUG: Attempting to read config. Found #config-data element:", configData); // Debug log 1
 
@@ -16,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("DEBUG: Raw data-allowed-extensions:", configData.dataset.allowedExtensions); // Debug log 3
         console.log("DEBUG: Raw data-max-visible-text:", configData.dataset.maxVisibleText); // Debug log 4
         console.log("DEBUG: Raw data-max-invisible-text:", configData.dataset.maxInvisibleText); // Debug log 5
+        console.log("DEBUG: Raw data-max-file-size-bytes:", configData.dataset.maxFileSizeBytes); // Debug log (new)
 
         // Parse values with fallbacks to defaults
         MAX_FILES = parseInt(configData.dataset.maxFiles, 10) || MAX_FILES;
@@ -26,15 +29,18 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.error("Error parsing allowed extensions:", e); // Debug log 7 - Error
             console.error("Raw string causing error:", configData.dataset.allowedExtensions); // Debug log 8 - Context for Error
-            // Keep default ALLOWED_EXTENSIONS on error
         }
         MAX_VISIBLE_TEXT = parseInt(configData.dataset.maxVisibleText, 10) || MAX_VISIBLE_TEXT;
         MAX_INVISIBLE_TEXT = parseInt(configData.dataset.maxInvisibleText, 10) || MAX_INVISIBLE_TEXT;
+        // Parse file size limit
+        MAX_FILE_SIZE_BYTES = parseInt(configData.dataset.maxFileSizeBytes, 10) || MAX_FILE_SIZE_BYTES;
+        MAX_FILE_SIZE_MB = Math.round(MAX_FILE_SIZE_BYTES / (1024 * 1024)); // Calculate MB for messages
+        console.log("DEBUG: Parsed MAX_FILE_SIZE_BYTES:", MAX_FILE_SIZE_BYTES); // Debug log (new)
 
     } else {
         console.error("DEBUG: #config-data element NOT FOUND in the DOM. Using default config values."); // Debug log 9 - Error
     }
-    console.log("DEBUG: Final config values being used:", { MAX_FILES, ALLOWED_EXTENSIONS, MAX_VISIBLE_TEXT, MAX_INVISIBLE_TEXT }); // Debug log 10
+    console.log("DEBUG: Final config values being used:", { MAX_FILES, ALLOWED_EXTENSIONS, MAX_VISIBLE_TEXT, MAX_INVISIBLE_TEXT, MAX_FILE_SIZE_BYTES }); // Debug log 10
 
     // --- DOM Element References ---
     const dropZone = document.getElementById('drop-zone');
@@ -59,15 +65,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function for UPLOAD errors (near upload zone)
     function displayUploadError(message) {
         if (uploadErrors) {
-            uploadErrors.innerHTML = message; // Use innerHTML for potential HTML tags
+            uploadErrors.innerHTML = message;
             uploadErrors.classList.remove('d-none');
-            // Ensure it's always styled as danger for upload errors
-            uploadErrors.classList.remove('alert-success', 'alert-warning');
+            uploadErrors.classList.remove('alert-success', 'alert-warning'); // Ensure only danger
             uploadErrors.classList.add('alert-danger');
-        } else {
-            console.error("Upload error display area (#upload-errors) not found.");
-            alert(message); // Fallback
-        }
+        } else { console.error("Upload error display area (#upload-errors) not found."); alert(message); }
     }
 
     // Function to clear UPLOAD errors
@@ -80,15 +82,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Function for PROCESSING results/errors (below button)
-    function displayResultMessage(message, type = 'danger') { // type can be 'success', 'warning', 'danger'
+    function displayResultMessage(message, type = 'danger') {
         if (resultMessages) {
-            resultMessages.innerHTML = message; // Use innerHTML for links/lists
-            resultMessages.classList.remove('d-none', 'alert-danger', 'alert-success', 'alert-warning'); // Clear old classes
-            resultMessages.classList.add(`alert-${type}`); // Add the specified type class
-        } else {
-            console.error("Result message display area (#result-messages) not found.");
-            alert(message); // Fallback
-        }
+            resultMessages.innerHTML = message;
+            resultMessages.classList.remove('d-none', 'alert-danger', 'alert-success', 'alert-warning');
+            resultMessages.classList.add(`alert-${type}`);
+        } else { console.error("Result message display area (#result-messages) not found."); alert(message); }
     }
 
     // Function to clear PROCESSING results/errors
@@ -102,157 +101,119 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function for TEXT INPUT errors
      function displayTextError(message) {
-        if (textErrors) {
-            textErrors.textContent = message;
-        } else {
-            console.error("Text error display area (#text-errors) not found.");
-        }
-        // Ensure Bootstrap class is added to the input for visibility
-        if (watermarkText) {
-            watermarkText.classList.add('is-invalid');
-        }
+        if (textErrors) { textErrors.textContent = message; }
+        else { console.error("Text error display area (#text-errors) not found."); }
+        if (watermarkText) { watermarkText.classList.add('is-invalid'); }
     }
 
     // Function to clear TEXT INPUT errors
     function clearTextErrors() {
-         if (textErrors) {
-            textErrors.textContent = '';
-         }
-         if(watermarkText){
-             watermarkText.classList.remove('is-invalid');
-         }
+         if (textErrors) { textErrors.textContent = ''; }
+         if(watermarkText){ watermarkText.classList.remove('is-invalid'); }
     }
 
     // Function to update character count and trigger text validation
     function updateCharCount() {
-        if (!watermarkText || !textCharCount) return; // Check elements exist
-
+        if (!watermarkText || !textCharCount) return;
         const currentLength = watermarkText.value.length;
         const typeVisibleRadio = document.querySelector('input[name="watermark_type"][value="visible"]');
         const typeVisible = typeVisibleRadio ? typeVisibleRadio.checked : true;
         const maxLength = typeVisible ? MAX_VISIBLE_TEXT : MAX_INVISIBLE_TEXT;
-
-        textCharCount.textContent = `${currentLength} / ${maxLength}`; // Update counter
-
-        // Manage validation state
-        if (currentLength > maxLength) {
-             displayTextError(`Maximum length is ${maxLength} characters.`);
-        } else {
-             clearTextErrors();
-        }
-        // Note: updateDegradationDisplay is called separately in the event listener for broader updates
+        textCharCount.textContent = `${currentLength} / ${maxLength}`;
+        if (currentLength > maxLength) { displayTextError(`Maximum length is ${maxLength} characters.`); }
+        else { clearTextErrors(); }
+        // Note: updateDegradationDisplay called separately by listener
     }
 
 
     // --- Event Listeners Setup ---
     if (dropZone && fileInput && browseBtn) {
         dropZone.addEventListener('click', () => fileInput.click());
-        browseBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            fileInput.click();
-        });
+        browseBtn.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
         dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
         dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
+            e.preventDefault(); dropZone.classList.remove('dragover');
             handleFiles(e.dataTransfer.files);
             if (fileInput) fileInput.value = '';
         });
-    } else {
-         console.error("Initial setup error: Drop zone, file input, or browse button not found.");
-    }
+    } else { console.error("Initial setup error: Drop zone, file input, or browse button not found."); }
 
     if (fileInput) {
-        fileInput.addEventListener('change', (e) => {
-            handleFiles(e.target.files);
-             e.target.value = '';
-        });
-    } else {
-         console.error("Initial setup error: File input element not found.");
-    }
+        fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
+    } else { console.error("Initial setup error: File input element not found."); }
 
-    // Event listener for deleting previews
-    if (previewArea) {
+    if (previewArea) { // Listener for deleting previews
         previewArea.addEventListener('click', (event) => {
             const deleteButton = event.target.closest('.preview-delete-btn');
             if (deleteButton) {
                 const fileId = deleteButton.dataset.fileId;
-                if (fileId) {
-                    console.log(`DEBUG: Delete button clicked for file ID: ${fileId}`);
-                    removeFile(fileId);
-                } else { console.error("Delete button clicked but file ID was missing."); }
+                if (fileId) { removeFile(fileId); }
+                else { console.error("Delete button clicked but file ID was missing."); }
             }
         });
-    } else {
-         console.error("Initial setup error: Preview area element not found.");
-    }
+    } else { console.error("Initial setup error: Preview area element not found."); }
 
-    // Event listener for form changes/inputs affecting degradation or validation
-     if (watermarkForm) {
+     if (watermarkForm) { // Listeners for form changes
         watermarkForm.addEventListener('change', (event) => {
-            if (event.target.type === 'radio' && event.target.name === 'watermark_type') {
-                updateCharCount(); // Check text length limit based on type
-            }
-             // Update degradation on any change (select, checkbox, radio)
-             updateDegradationDisplay();
+            if (event.target.type === 'radio' && event.target.name === 'watermark_type') { updateCharCount(); }
+            updateDegradationDisplay(); // Update degradation on any select/radio/check change
         });
         watermarkForm.addEventListener('input', (event) => {
-             // Update degradation on input changes (text, range, number, color)
              if (event.target.id === 'watermark-text' || event.target.type === 'number' || event.target.type === 'range' || event.target.type === 'color') {
-                if(event.target.id === 'watermark-text') {
-                     updateCharCount(); // Validate text length as user types
-                }
-                updateDegradationDisplay(); // Update degradation estimate
+                if(event.target.id === 'watermark-text') { updateCharCount(); }
+                updateDegradationDisplay(); // Update degradation on relevant input changes
              }
         });
-    } else {
-         console.error("Initial setup error: Watermark form element not found.");
-    }
+    } else { console.error("Initial setup error: Watermark form element not found."); }
 
 
     // --- Core Logic Functions ---
 
     function handleFiles(files) {
         console.log("DEBUG: handleFiles triggered with", files ? files.length : 0, "files."); // Debug log 11
-        // Clear previous UPLOAD errors AND previous PROCESSING results
-        clearUploadErrors();
-        clearResultMessages(); // Clear old results when new files are handled
+        clearUploadErrors(); // Clear only upload errors here
+        clearResultMessages(); // Also clear previous processing results
 
         const fileList = files ? Array.from(files) : [];
-        if (fileList.length === 0) return; // Nothing to process
+        if (fileList.length === 0) return;
 
         // 1. Check Max Files
         console.log(`DEBUG: Checking max files: ${fileList.length} vs ${MAX_FILES}`); // Debug log 12
         if (fileList.length > MAX_FILES) {
-            console.error("Validation Error: Exceeded max files limit."); // Debug log 13 - Error
             displayUploadError(`You can only upload a maximum of ${MAX_FILES} files at a time.`); // Shows in upload area
             return;
         }
 
-        // 2. Filter Files
+        // 2. Filter Files (Check Size & Extension)
         const validFiles = [];
         const rejectedFilesInfo = [];
         if (previewArea) previewArea.innerHTML = ''; // Clear previous previews (assuming replace behavior)
-        uploadedFiles = []; // Reset the main list (assuming replace behavior)
+        uploadedFiles = []; // Reset global list (assuming replace behavior)
 
         fileList.forEach(file => {
             const fileName = file.name || 'Unnamed file';
             const fileExtension = fileName.includes('.') ? fileName.slice(((fileName.lastIndexOf(".") - 1) >>> 0) + 2).toLowerCase() : '';
-            console.log(`DEBUG: Processing file: ${fileName}, extracted extension: '${fileExtension}'`); // Debug log 14
-            console.log(`DEBUG: Checking if [${ALLOWED_EXTENSIONS.join(', ')}] includes '${fileExtension}':`, ALLOWED_EXTENSIONS.includes(fileExtension)); // Debug log 15
 
+            // --- File Size Check (Client-side) ---
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                 console.warn(`Validation Error: File '${fileName}' (${file.size} bytes) exceeds size limit.`);
+                 rejectedFilesInfo.push(`${fileName} (Exceeds ${MAX_FILE_SIZE_MB} MB limit)`);
+                 return; // Skip this file, continue to next in forEach
+            }
+
+            // --- Extension Check ---
+            console.log(`DEBUG: Processing file: ${fileName}, ext: '${fileExtension}', size: ${file.size}`); // Debug log 14
+            console.log(`DEBUG: Checking if [${ALLOWED_EXTENSIONS.join(', ')}] includes '${fileExtension}':`, ALLOWED_EXTENSIONS.includes(fileExtension)); // Debug log 15
             if (fileExtension && ALLOWED_EXTENSIONS.includes(fileExtension)) {
-                if (file.type.startsWith('image/') || (!file.type && fileExtension)) {
+                if (file.type.startsWith('image/') || (!file.type && fileExtension)) { // Basic MIME check
                     validFiles.push(file);
                 } else {
-                     console.warn(`Validation Warning: File '${fileName}' has allowed extension '.${fileExtension}' but unexpected MIME type '${file.type}'. Rejecting.`); // Debug log 16
                      rejectedFilesInfo.push(`${fileName} (Not a recognized image type)`);
                 }
             } else {
-                console.warn(`Validation Error: Extension '.${fileExtension}' not allowed for file '${fileName}'. Rejecting.`); // Debug log 17
-                if (!fileExtension) { rejectedFilesInfo.push(`${fileName} (File has no extension)`); }
-                else { rejectedFilesInfo.push(`${fileName} (Invalid extension: .${fileExtension})`); }
+                 if (!fileExtension) { rejectedFilesInfo.push(`${fileName} (No extension)`); }
+                 else { rejectedFilesInfo.push(`${fileName} (Invalid extension: .${fileExtension})`); }
             }
         });
 
@@ -266,10 +227,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // 4. Process and Display Valid Previews
         if (validFiles.length > 0) {
             if(previewPlaceholder) previewPlaceholder.classList.add('d-none');
+            uploadedFiles = validFiles; // Assign only validated files to the global list
 
-            validFiles.forEach(file => {
+            uploadedFiles.forEach(file => {
                 const fileId = `${file.name}-${file.lastModified}`;
-                uploadedFiles.push(file); // Add to global list
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const previewItem = document.createElement('div');
@@ -311,20 +272,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // FUNCTION to remove a file
     function removeFile(fileIdToRemove) {
         console.log(`DEBUG: Attempting to remove file with ID: ${fileIdToRemove}`);
-
         const indexToRemove = uploadedFiles.findIndex(file => `${file.name}-${file.lastModified}` === fileIdToRemove);
         if (indexToRemove > -1) {
             const removedFileName = uploadedFiles[indexToRemove].name;
-            uploadedFiles.splice(indexToRemove, 1); // Remove from array
-            console.log(`DEBUG: Removed file '${removedFileName}' from uploadedFiles array.`);
-
+            uploadedFiles.splice(indexToRemove, 1);
+            console.log(`DEBUG: Removed file '${removedFileName}'`);
             const previewItemToRemove = document.querySelector(`.preview-item[data-file-id="${fileIdToRemove}"]`);
             if (previewItemToRemove && previewArea && previewItemToRemove.parentNode === previewArea) {
-                previewArea.removeChild(previewItemToRemove); // Remove from DOM
-                console.log(`DEBUG: Removed preview item for '${removedFileName}' from DOM.`);
-            } else { console.warn(`Could not find or remove preview item in DOM for file ID: ${fileIdToRemove}`); }
-
-            // Update UI
+                previewArea.removeChild(previewItemToRemove);
+                console.log(`DEBUG: Removed preview item for '${removedFileName}'`);
+            } else { console.warn(`Could not find preview item for file ID: ${fileIdToRemove}`); }
             if (uploadedFiles.length === 0) {
                 if(processBtn) processBtn.disabled = true;
                 if(previewPlaceholder && previewArea) {
@@ -332,19 +289,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     previewPlaceholder.classList.remove('d-none');
                     previewArea.appendChild(previewPlaceholder);
                 }
-                // Clear BOTH message areas when last file removed manually
-                clearUploadErrors();
-                clearResultMessages();
+                clearUploadErrors(); // Clear any leftover upload messages
+                clearResultMessages(); // Clear any leftover result messages
             } else { if(processBtn) processBtn.disabled = false; }
-            updateDegradationDisplay(); // Recalculate impact
-
-        } else { console.warn(`File with ID ${fileIdToRemove} not found in uploadedFiles array.`); }
-        console.log("DEBUG: Current uploadedFiles list after removal:", uploadedFiles.map(f => f.name));
+            updateDegradationDisplay();
+        } else { console.warn(`File with ID ${fileIdToRemove} not found.`); }
+        console.log("DEBUG: Current files after removal:", uploadedFiles.map(f => f.name));
     }
 
     // FUNCTION to calculate and display degradation estimate
     function updateDegradationDisplay() {
-         // Get current parameter values from the form
+        // Get current parameter values from the form
         const currentTextLength = watermarkText ? watermarkText.value.length : 0;
         const typeVisibleRadio = document.querySelector('input[name="watermark_type"][value="visible"]');
         const typeVisible = typeVisibleRadio ? typeVisibleRadio.checked : true;
@@ -363,34 +318,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const spacingPercent = parseFloat(spacingInput?.value || 50);
         const spacingRatio = isNaN(spacingPercent) ? 0.5 : spacingPercent / 100.0;
 
-        // --- Calculation Logic (same as before) ---
+        // --- Calculation Logic ---
         let degradation = 0.0;
         const validImageFilesCount = uploadedFiles.length;
-        if(validImageFilesCount > 0) { degradation = 5.0; }
-        else { degradation = 0.0; }
+        if(validImageFilesCount > 0) { degradation = 5.0; } else { degradation = 0.0; }
         if (currentTextLength > 0 && currentTextLength <= maxLength) {
-             degradation += Math.min(currentTextLength * 0.1, 5.0);
-             degradation += fontSizeRatio * 150.0;
-             const opacityFactor = alpha / 255.0;
-             degradation += opacityFactor * 20.0;
-             if (repeat) {
+             degradation += Math.min(currentTextLength * 0.1, 5.0); // Text length
+             degradation += fontSizeRatio * 150.0; // Size
+             degradation += (alpha / 255.0) * 20.0; // Opacity
+             if (repeat) { // Repetition
                 degradation += 40.0;
-                if (Math.abs(angle) % 90 != 0) { degradation += 10.0; }
+                if (Math.abs(angle) % 90 != 0) { degradation += 10.0; } // Angle penalty
                 const validSpacingRatio = Math.max(0, Math.min(1, spacingRatio));
-                degradation += (1.0 - validSpacingRatio) * 25.0;
+                degradation += (1.0 - validSpacingRatio) * 25.0; // Spacing penalty
              }
-        } else if (currentTextLength > maxLength) { degradation += 50; }
+        } else if (currentTextLength > maxLength) { degradation += 50; } // Length penalty
         const final_degradation = Math.min(Math.max(0, degradation), 100);
         const rounded_degradation = Math.round(final_degradation);
 
-        // Update the display
+        // --- Update Display ---
         if(degradationPercent){
              degradationPercent.textContent = `${rounded_degradation}%`;
              degradationPercent.classList.remove('text-success', 'text-warning', 'text-danger', 'text-dark');
              if (rounded_degradation === 0 && validImageFilesCount === 0){ degradationPercent.classList.add('text-dark'); }
-             else if (rounded_degradation <= 30) { degradationPercent.classList.add('text-success'); }
-             else if (rounded_degradation <= 60) { degradationPercent.classList.add('text-warning'); }
-             else { degradationPercent.classList.add('text-danger'); }
+             else if (rounded_degradation <= 30) { degradationPercent.classList.add('text-success'); } // Green
+             else if (rounded_degradation <= 60) { degradationPercent.classList.add('text-warning'); } // Orange
+             else { degradationPercent.classList.add('text-danger'); } // Red
         }
     }
 
@@ -401,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             console.log("DEBUG: Submit event triggered."); // Debug log 20
 
-            // Clear previous PROCESSING results
+            // Clear previous PROCESSING results specifically
             clearResultMessages();
 
             // --- Final Validation ---
@@ -419,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
              // Validate files presence (error displayed in RESULT area)
              if (uploadedFiles.length === 0) {
-                 displayResultMessage("Please upload at least one valid image file.", 'danger'); // Uses result message area
+                 displayResultMessage("Please upload at least one valid image file.", 'danger'); // Shows below button
                  isValid = false;
              }
              if (!isValid) {
@@ -433,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // --- Create FormData ---
             const formData = new FormData();
-             // Append ALL files
+             // Append ALL valid files
              uploadedFiles.forEach((file, index) => {
                  formData.append('images', file, file.name);
                  console.log(`DEBUG: Appending file ${index}: ${file.name}`);
@@ -443,26 +396,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedType = document.querySelector('input[name="watermark_type"]:checked');
             formData.append('watermark_type', selectedType ? selectedType.value : 'visible');
             if (selectedType && selectedType.value === 'visible') {
-                const position = document.getElementById('position')?.value || 'bottom-right';
+                // Append all visible options...
+                formData.append('position', document.getElementById('position')?.value || 'bottom-right');
                 const fontSizeInput = document.getElementById('font_size_ratio');
                 const fontSizePercent = parseFloat(fontSizeInput?.value || 5);
-                const fontSizeRatio = isNaN(fontSizePercent) ? 0.05 : fontSizePercent / 100.0;
-                const color = document.getElementById('color')?.value || '#FFFFFF';
-                const opacity = document.getElementById('opacity')?.value || '128';
+                formData.append('font_size_ratio', (isNaN(fontSizePercent) ? 0.05 : fontSizePercent / 100.0).toString());
+                formData.append('color', document.getElementById('color')?.value || '#FFFFFF');
+                formData.append('opacity', document.getElementById('opacity')?.value || '128');
                 const repeatCheckbox = document.getElementById('repeat');
                 const repeat = repeatCheckbox ? repeatCheckbox.checked.toString() : 'false';
-                const angle = document.getElementById('angle')?.value || '0';
-                const spacingInput = document.getElementById('spacing_ratio');
-                const spacingPercent = parseFloat(spacingInput?.value || 50);
-                const spacingRatio = isNaN(spacingPercent) ? 0.5 : spacingPercent / 100.0;
-                formData.append('position', position);
-                formData.append('font_size_ratio', fontSizeRatio.toString());
-                formData.append('color', color);
-                formData.append('opacity', opacity);
                 formData.append('repeat', repeat);
                 if (repeat === 'true') {
-                    formData.append('angle', angle);
-                    formData.append('spacing_ratio', spacingRatio.toString());
+                    formData.append('angle', document.getElementById('angle')?.value || '0');
+                    const spacingInput = document.getElementById('spacing_ratio');
+                    const spacingPercent = parseFloat(spacingInput?.value || 50);
+                    formData.append('spacing_ratio', (isNaN(spacingPercent) ? 0.5 : spacingPercent / 100.0).toString());
                 }
             }
             console.log("DEBUG: FormData prepared. Sending fetch request to /process...");
@@ -472,11 +420,11 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(response => {
                  const contentType = response.headers.get("content-type");
                 if (!response.ok) {
-                     if (contentType && contentType.indexOf("application/json") !== -1) {
+                     if (contentType && contentType.includes("application/json")) {
                         return response.json().then(errData => { throw new Error(errData.error || `Server error: ${response.status}`); });
                      } else { throw new Error(`Server error: ${response.status} ${response.statusText}`); }
                 }
-                 if (contentType && contentType.indexOf("application/json") !== -1) { return response.json(); }
+                 if (contentType && contentType.includes("application/json")) { return response.json(); }
                  else { throw new Error("Received non-JSON response from server."); }
             })
             .then(data => { // Handle the JSON data from Flask
@@ -508,13 +456,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Clear previews only if the overall operation had no errors
                 if (overallSuccess) {
-                    uploadedFiles = [];
+                    uploadedFiles = []; // Reset files array on success
                     if(previewArea) previewArea.innerHTML = '';
                     if(previewPlaceholder && previewArea){
                         previewPlaceholder.classList.remove('d-none');
                         previewArea.appendChild(previewPlaceholder);
                     }
+                     // Also disable button again since files are gone
+                    if(processBtn) processBtn.disabled = true;
                 }
+
             })
             .catch(error => {
                 console.error("DEBUG: Fetch error:", error);
@@ -522,11 +473,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayResultMessage(`An error occurred: ${error.message}`, 'danger');
             })
             .finally(() => {
-                // Re-enable button or not, depending on desired flow
-                processBtn.disabled = uploadedFiles.length === 0; // Disable if previews were cleared
-                // Let's make it always disabled after an attempt, forcing re-upload for new batch
-                processBtn.disabled = true;
-                processBtn.innerHTML = 'Apply Watermark'; // Restore original text
+                // Restore button state (rely on success/error logic to set disabled state)
+                 if(processBtn && !processBtn.disabled) { // Only re-enable if not explicitly disabled by success logic
+                     processBtn.disabled = uploadedFiles.length === 0;
+                 }
+                 if(processBtn) processBtn.innerHTML = '<i class="bi bi-pencil-square me-2"></i>Apply Watermark'; // Restore icon too
             });
         });
     } else {
@@ -535,15 +486,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initial UI State ---
     console.log("DEBUG: Setting initial UI state."); // Debug log 23
-    updateCharCount(); // Init char count, validation, and degradation display
-    if (previewArea && previewPlaceholder) {
+    updateCharCount(); // Init char count, validation
+    updateDegradationDisplay(); // Init degradation display
+    if (previewArea && previewPlaceholder) { // Init preview area
         if (uploadedFiles.length === 0) {
             previewArea.innerHTML = '';
             previewPlaceholder.classList.remove('d-none');
             previewArea.appendChild(previewPlaceholder);
         } else { previewPlaceholder.classList.add('d-none'); }
     }
-     if(processBtn) processBtn.disabled = uploadedFiles.length === 0;
+     if(processBtn) processBtn.disabled = uploadedFiles.length === 0; // Init button state
      console.log("DEBUG: Initial UI state set."); // Debug log 24
 
 }); // End of DOMContentLoaded
